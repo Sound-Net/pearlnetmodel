@@ -83,8 +83,9 @@ Change the package type with `-Djpackage.type=exe` (Windows), `pkg` (macOS) or `
 (`platform-windows`, `platform-mac-x64`, `platform-mac-aarch64`, `platform-linux`) are activated automatically and pick the
 matching JavaFX natives. Icons are in `src/main/packaging/`.
 
-No Windows machine? The GitHub Actions workflow in `../.github/workflows/installers.yml` (repository root) builds the Windows, macOS (Apple
-silicon) and macOS (Intel) installers on GitHub's runners when you push a tag such as `v1.0.0` or run it manually.
+No Windows machine? Every push to `main` builds the Windows, macOS (Apple silicon) and macOS (Intel) installers on
+GitHub Actions and publishes them as the *Latest build* release; a `v*` tag makes a versioned release (see
+`../.github/workflows/installers.yml`).
 
 ## Validation
 

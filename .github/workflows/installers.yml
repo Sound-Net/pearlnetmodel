@@ -1,30 +1,112 @@
-# Builds the Windows and macOS installers on GitHub's runners (push a tag like v1.0.0, or run manually).
+# Builds the Sphere TS installers (Windows .msi, macOS .dmg for Apple silicon and Intel) and publishes them.
+#
+#  - Every push to main  -> updates the "latest" pre-release (tag `latest`) with installers for that commit.
+#  - Pushing a tag v1.2.3 -> creates a normal release "Sphere TS 1.2.3" with the installers.
+#  - Actions tab -> "Run workflow" builds and updates "latest" by hand.
 name: installers
+
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['v*']
+
+# a newer push replaces a build that is still running
+concurrency:
+  group: installers-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, macos-13]   # macos-latest = Apple silicon, macos-13 = Intel
+        include:
+          - os: windows-2022        # has WiX 3 (needed by jpackage on JDK 21)
+            label: windows-x64
+          - os: macos-latest        # Apple silicon
+            label: macos-arm64
+          - os: macos-15-intel      # Intel
+            label: macos-x64
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: java
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
           cache-dependency-path: java/pom.xml
-      - name: Build installer
-        run: mvn -B -Pinstaller package
+
+      - name: Make sure WiX 3 is on the PATH (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          if ! command -v candle.exe >/dev/null 2>&1; then
+            for d in "/c/Program Files (x86)"/WiX\ Toolset\ v3*/bin; do
+              [ -d "$d" ] && echo "$d" >> "$GITHUB_PATH" && found=1
+            done
+            if [ -z "$found" ]; then
+              choco install wixtoolset --no-progress -y
+              for d in "/c/Program Files (x86)"/WiX\ Toolset\ v3*/bin; do echo "$d" >> "$GITHUB_PATH"; done
+            fi
+          fi
+
+      - name: Build and test, then make the installer
+        run: mvn -B -ntp -Pinstaller package
+
+      - name: Name the installer by platform
+        run: |
+          mkdir -p dist
+          for f in target/installer/*.msi target/installer/*.dmg target/installer/*.exe target/installer/*.pkg; do
+            [ -f "$f" ] || continue
+            ext="${f##*.}"
+            base="$(basename "$f" ".$ext")"
+            cp "$f" "dist/${base}-${{ matrix.label }}.${ext}"
+          done
+          ls -l dist
+
       - uses: actions/upload-artifact@v4
         with:
-          name: SphereTS-${{ matrix.os }}
-          path: java/target/installer/*
+          name: SphereTS-${{ matrix.label }}
+          path: java/dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Release a version tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          gh release create "$tag" dist/* --title "Sphere TS ${tag#v}" --generate-notes --verify-tag
+
+      - name: Update the "latest" pre-release
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          short="${GITHUB_SHA::7}"
+          msg="$(gh api "repos/$GH_REPO/commits/$GITHUB_SHA" --jq '.commit.message' | head -n 1)"
+          notes="Automatic build of the latest commit on main: [$short](https://github.com/$GH_REPO/commit/$GITHUB_SHA) - $msg
+
+          Built $(date -u '+%Y-%m-%d %H:%M UTC'). These installers are unsigned:
+          - **macOS**: download the \`arm64\` dmg for Apple silicon or \`x64\` for Intel. The first time, right-click the app and choose Open.
+          - **Windows**: run the msi; if SmartScreen warns, choose More info -> Run anyway."
+          # replace the previous rolling release and move its tag to this commit
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest dist/* --prerelease --target "$GITHUB_SHA" \
+            --title "Latest build ($short)" --notes "$notes"

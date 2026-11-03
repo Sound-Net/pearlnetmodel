@@ -28,7 +28,14 @@ The two give the same results (the Java tests compare against the Python outputs
     python run_ts.py --material polycarbonate --click dolphin
     python validate.py
 
-GitHub Actions (`.github/workflows/installers.yml`) builds the Windows and macOS installers when you push a tag such
-as `v1.0.0` or run the workflow manually.
+## Downloads
+
+Every push to `main` builds the installers on GitHub Actions (`.github/workflows/installers.yml`) and publishes them
+as the [**Latest build**](https://github.com/Sound-Net/pearlnetmodel/releases/tag/latest) pre-release: a Windows `.msi` and macOS `.dmg` files for Apple
+silicon (`arm64`) and Intel (`x64`). Pushing a version tag makes a normal release instead:
+
+    git tag v1.0.1 && git push origin v1.0.1
+
+(The tag is the release name; the app's own version number is `app.version` in `java/pom.xml`.)
 
 See [`java/README.md`](java/README.md) and [`python/README.md`](python/README.md) for details.
