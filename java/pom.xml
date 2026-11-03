@@ -15,6 +15,9 @@
     <maven.compiler.release>17</maven.compiler.release>
     <javafx.version>21.0.5</javafx.version>
     <junit.version>5.10.2</junit.version>
+    <transit.version>2.0.0</transit.version>
+    <!-- must match the JNA version fxthemes depends on -->
+    <jna.version>5.13.0</jna.version>
 
     <app.name>SphereTS</app.name>
     <app.vendor>Sphere TS</app.vendor>
@@ -22,6 +25,8 @@
     <app.mainClass>spherets.ui.Launcher</app.mainClass>
     <!-- jpackage only accepts numeric versions -->
     <app.version>1.0.0</app.version>
+    <!-- FXSkins (used by the Transit theme) needs reflective access to the JavaFX skins -->
+    <app.opens>--add-opens=javafx.controls/javafx.scene.control.skin=com.pixelduke.fxskins --add-opens=javafx.controls/javafx.scene.control=com.pixelduke.fxskins --add-opens=javafx.graphics/javafx.scene=com.pixelduke.fxskins</app.opens>
 
     <!-- set by the OS profiles below; override with -Djavafx.platform=... -->
     <javafx.platform>linux</javafx.platform>
@@ -48,6 +53,18 @@
       <artifactId>javafx-base</artifactId>
       <version>${javafx.version}</version>
       <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <!-- Transit theme (pixelduke), as used by other SoundNet programs -->
+    <dependency>
+      <groupId>com.pixelduke</groupId>
+      <artifactId>transit</artifactId>
+      <version>${transit.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.openjfx</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -92,6 +109,11 @@
         <version>0.0.8</version>
         <configuration>
           <mainClass>${app.module}/${app.mainClass}</mainClass>
+          <options>
+            <option>--add-opens=javafx.controls/javafx.scene.control.skin=com.pixelduke.fxskins</option>
+            <option>--add-opens=javafx.controls/javafx.scene.control=com.pixelduke.fxskins</option>
+            <option>--add-opens=javafx.graphics/javafx.scene=com.pixelduke.fxskins</option>
+          </options>
         </configuration>
       </plugin>
     </plugins>
@@ -151,13 +173,36 @@
             <version>3.6.1</version>
             <executions>
               <execution>
-                <id>copy-modules</id>
+                <id>copy-javafx-modules</id>
                 <phase>package</phase>
                 <goals><goal>copy-dependencies</goal></goals>
                 <configuration>
                   <includeScope>runtime</includeScope>
                   <includeGroupIds>org.openjfx</includeGroupIds>
                   <classifier>${javafx.platform}</classifier>
+                  <outputDirectory>${project.build.directory}/modules</outputDirectory>
+                </configuration>
+              </execution>
+              <execution>
+                <id>copy-other-modules</id>
+                <phase>package</phase>
+                <goals><goal>copy-dependencies</goal></goals>
+                <configuration>
+                  <includeScope>runtime</includeScope>
+                  <excludeGroupIds>org.openjfx,net.java.dev.jna</excludeGroupIds>
+                  <outputDirectory>${project.build.directory}/modules</outputDirectory>
+                </configuration>
+              </execution>
+              <execution>
+                <!-- jlink needs real modules: JNA publishes them as jna-jpms / jna-platform-jpms -->
+                <id>copy-jna-modules</id>
+                <phase>package</phase>
+                <goals><goal>copy</goal></goals>
+                <configuration>
+                  <artifactItems>
+                    <artifactItem><groupId>net.java.dev.jna</groupId><artifactId>jna-jpms</artifactId><version>${jna.version}</version></artifactItem>
+                    <artifactItem><groupId>net.java.dev.jna</groupId><artifactId>jna-platform-jpms</artifactId><version>${jna.version}</version></artifactItem>
+                  </artifactItems>
                   <outputDirectory>${project.build.directory}/modules</outputDirectory>
                 </configuration>
               </execution>
@@ -194,7 +239,7 @@
                 <configuration>
                   <executable>${jpackage.executable}</executable>
                   <workingDirectory>${project.basedir}</workingDirectory>
-                  <commandlineArgs>--type ${jpackage.type} --name ${app.name} --app-version ${app.version} --vendor "${app.vendor}" --description "Target strength of small spheres for odontocete clicks" --module-path target/modules --module ${app.module}/${app.mainClass} --java-options "-Xmx2g" --dest target/installer ${jpackage.os.args}</commandlineArgs>
+                  <commandlineArgs>--type ${jpackage.type} --name ${app.name} --app-version ${app.version} --vendor "${app.vendor}" --description "Target strength of small spheres for odontocete clicks" --module-path target/modules --module ${app.module}/${app.mainClass} --java-options "-Xmx2g ${app.opens}" --dest target/installer ${jpackage.os.args}</commandlineArgs>
                 </configuration>
               </execution>
             </executions>

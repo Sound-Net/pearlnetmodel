@@ -19,6 +19,9 @@ import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import com.pixelduke.transit.Style;
+import com.pixelduke.transit.TransitStyleClass;
+import com.pixelduke.transit.TransitTheme;
 import spherets.model.*;
 import spherets.plot.FigureView;
 
@@ -43,6 +46,7 @@ public class SphereTsApp extends Application {
         Thread t = new Thread(r, "sphere-ts-compute"); t.setDaemon(true); return t;
     });
     private Scene scene;
+    private TransitTheme transit;
     private Stage stage;
     private boolean updating;
 
@@ -120,6 +124,8 @@ public class SphereTsApp extends Application {
         root.setCenter(split);
 
         scene = new Scene(root, 1500, 900);
+        root.getStyleClass().add(TransitStyleClass.BACKGROUND);
+        transit = new TransitTheme(scene, transitStyle());
         scene.getStylesheets().add(getClass().getResource("app.css").toExternalForm());
         applyTheme();
         dark.addListener((o, a, b) -> { applyTheme(); prefs.putBoolean("dark", b); });
@@ -137,7 +143,19 @@ public class SphereTsApp extends Application {
 
     @Override public void stop() { exec.shutdownNow(); }
 
+    private Style transitStyle() { return dark.get() ? Style.DARK : Style.LIGHT; }
+
+    /** Transit theme (user-agent stylesheet) for a dialog, plus our own additions. */
+    private void themeDialog(Dialog<?> d) {
+        DialogPane p = d.getDialogPane();
+        if (p.getScene() != null) p.getScene().setUserAgentStylesheet(transitStyle().getStyleStylesheetURL());
+        else p.getStylesheets().add(transitStyle().getStyleStylesheetURL());
+        p.getStylesheets().addAll(scene.getStylesheets());
+        p.getStyleClass().add(dark.get() ? "dark" : "light");
+    }
+
     private void applyTheme() {
+        transit.setStyle(transitStyle());
         Node r = scene.getRoot();
         r.getStyleClass().removeAll("dark", "light");
         r.getStyleClass().add(dark.get() ? "dark" : "light");
@@ -229,8 +247,8 @@ public class SphereTsApp extends Application {
         sp.setFitToWidth(true);
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        calc.setDefaultButton(false);
-        calc.getStyleClass().add("accent");
+        calc.setDefaultButton(true);
+        calc.getStyleClass().add("calc-button");
         calc.setMaxWidth(Double.MAX_VALUE);
         calc.setOnAction(e -> calculate());
         tip("Run the calculation with the values above (Ctrl/⌘ + Enter). A typical 167 × 91 size × angle grid takes a few seconds.", calc);
@@ -512,6 +530,7 @@ public class SphereTsApp extends Application {
     // ------------------------------------------------------------------ outputs
     private Node outputs() {
         TabPane tabs = new TabPane();
+        tabs.getStyleClass().add(TransitStyleClass.UNDERLINE_TAB_PANE);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         for (FigureView v : List.of(figTs, figAngle, figClicks, figMap)) v.setStatusSink(this::status);
         Tab t1 = new Tab("Target strength", figTs);
@@ -667,8 +686,7 @@ public class SphereTsApp extends Application {
         Alert a = new Alert(Alert.AlertType.WARNING, msg);
         a.setHeaderText(null);
         a.initOwner(stage);
-        a.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
-        a.getDialogPane().getStyleClass().add(dark.get() ? "dark" : "light");
+        themeDialog(a);
         a.showAndWait();
     }
 
@@ -729,8 +747,7 @@ public class SphereTsApp extends Application {
         a.setHeaderText("Sphere TS");
         a.initOwner(stage);
         a.getDialogPane().setPrefWidth(560);
-        a.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
-        a.getDialogPane().getStyleClass().add(dark.get() ? "dark" : "light");
+        themeDialog(a);
         a.showAndWait();
     }
 }

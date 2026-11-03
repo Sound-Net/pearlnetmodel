@@ -18,7 +18,15 @@ Needs a JDK 17 or newer (21 recommended) and Maven 3.8+.
 
     mvn javafx:run
 
-or build and run the tests (they compare against the Python results):
+The app uses the [Transit](https://github.com/dukke/Transit) theme (pixelduke), like other SoundNet programs. Its
+skins need reflective access to JavaFX, so when you run from an IDE add these VM options (Maven and the installers
+already do this):
+
+    --add-opens=javafx.controls/javafx.scene.control.skin=com.pixelduke.fxskins
+    --add-opens=javafx.controls/javafx.scene.control=com.pixelduke.fxskins
+    --add-opens=javafx.graphics/javafx.scene=com.pixelduke.fxskins
+
+Build and run the tests (they compare against the Python results):
 
     mvn package
 
@@ -56,7 +64,7 @@ the **style: light, dark or match the app**. Then:
 * Right-click a figure for the same options; hover over a plot to read off values.
 * *File → Export all figures…* saves all four as 300-dpi PNG + SVG.
 
-*View → Dark mode* (Ctrl/⌘+Shift+D) switches the app between dark (default) and light; the choice is remembered.
+*View → Dark mode* (Ctrl/⌘+Shift+D) switches the Transit theme between dark (default) and light; the choice is remembered.
 
 ## Installers (jpackage)
 
@@ -92,7 +100,8 @@ silicon) and macOS (Intel) installers on GitHub's runners when you push a tag su
     src/main/java/spherets/model   physics: SphereModel (Faran/Hickling), Click, Species, Material(s), Water, Results
     src/main/java/spherets/plot    plotting: Figure, XYPanel, HeatmapPanel, Gfx (JavaFX canvas + SVG back ends), FigureView
     src/main/java/spherets/ui      JavaFX app: SphereTsApp, Figures, NumberField
-    src/main/resources             app.css (dark/light themes), icon
+    src/main/resources             app.css (additions to the Transit dark/light themes), icon
+    src/main/packaging             installer icons (.icns, .ico, .png)
 
 ## Assumptions
 

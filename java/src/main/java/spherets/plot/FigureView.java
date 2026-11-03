@@ -165,7 +165,7 @@ public class FigureView extends BorderPane {
         double cw = canvas.getWidth(), ch = canvas.getHeight();
         g.setTransform(1, 0, 0, 1, 0, 0);
         PlotTheme t = theme();
-        g.setFill(t.dark() ? Color.web("#0f1013") : Color.web("#d9dbe0"));
+        g.setFill(t.dark() ? Color.web("#161616") : Color.web("#dcdcdc"));
         g.fillRect(0, 0, cw, ch);
         clearOverlay();
         if (figure == null || cw < 20 || ch < 20) return;

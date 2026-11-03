@@ -14,7 +14,7 @@ public record PlotTheme(String name, boolean dark, Color bg, Color fg, Color mut
             0.22, 0.05, 0.85);
 
     public static final PlotTheme DARK = new PlotTheme("Dark", true,
-            Color.web("#17191e"), Color.web("#e6e6e6"), Color.web("#a3a7ae"), Color.web("#2e323a"),
+            Color.web("#1e1e1e"), Color.web("#e8e8e8"), Color.web("#a6a6a6"), Color.web("#363636"),
             Color.web("#5ea3ff"), Color.web("#ff6b6b"), Color.web("#e6e6e6"),
             new Color[]{Color.web("#5ea3ff"), Color.web("#f6ad55"), Color.web("#68d391"), Color.web("#b794f4")},
             0.30, 0.30, 0.97);
