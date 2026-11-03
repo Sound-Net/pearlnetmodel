@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>spherets</groupId>
+  <artifactId>sphere-ts-fx</artifactId>
+  <version>1.0.0</version>
+  <name>Sphere TS</name>
+  <description>Target strength of small elastic spheres for odontocete echolocation clicks (JavaFX)</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <javafx.version>21.0.5</javafx.version>
+    <junit.version>5.10.2</junit.version>
+
+    <app.name>SphereTS</app.name>
+    <app.vendor>Sphere TS</app.vendor>
+    <app.module>spherets</app.module>
+    <app.mainClass>spherets.ui.Launcher</app.mainClass>
+    <!-- jpackage only accepts numeric versions -->
+    <app.version>1.0.0</app.version>
+
+    <!-- set by the OS profiles below; override with -Djavafx.platform=... -->
+    <javafx.platform>linux</javafx.platform>
+    <jpackage.executable>${java.home}/bin/jpackage</jpackage.executable>
+    <jpackage.type>app-image</jpackage.type>
+    <jpackage.os.args></jpackage.os.args>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-graphics</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-base</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <!-- the model tests do not need the JavaFX module graph -->
+          <useModulePath>false</useModulePath>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${app.mainClass}</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <!-- mvn javafx:run -->
+      <plugin>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <version>0.0.8</version>
+        <configuration>
+          <mainClass>${app.module}/${app.mainClass}</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- ===== platform detection (automatic) ===== -->
+    <profile>
+      <id>platform-windows</id>
+      <activation><os><family>windows</family></os></activation>
+      <properties>
+        <javafx.platform>win</javafx.platform>
+        <jpackage.executable>${java.home}\bin\jpackage.exe</jpackage.executable>
+        <jpackage.type>msi</jpackage.type>
+        <jpackage.os.args>--win-menu --win-menu-group "${app.name}" --win-shortcut --win-dir-chooser --win-per-user-install --win-upgrade-uuid 7f3a1c52-5d0e-4c55-9a2b-2f6c1d9e8a41 --icon src/main/packaging/windows/SphereTS.ico</jpackage.os.args>
+      </properties>
+    </profile>
+    <profile>
+      <id>platform-mac-x64</id>
+      <activation><os><family>mac</family><arch>x86_64</arch></os></activation>
+      <properties>
+        <javafx.platform>mac</javafx.platform>
+        <jpackage.type>dmg</jpackage.type>
+        <jpackage.os.args>--mac-package-name ${app.name} --icon src/main/packaging/macos/SphereTS.icns</jpackage.os.args>
+      </properties>
+    </profile>
+    <profile>
+      <id>platform-mac-aarch64</id>
+      <activation><os><family>mac</family><arch>aarch64</arch></os></activation>
+      <properties>
+        <javafx.platform>mac-aarch64</javafx.platform>
+        <jpackage.type>dmg</jpackage.type>
+        <jpackage.os.args>--mac-package-name ${app.name} --icon src/main/packaging/macos/SphereTS.icns</jpackage.os.args>
+      </properties>
+    </profile>
+    <profile>
+      <id>platform-linux</id>
+      <activation><os><family>unix</family><name>Linux</name></os></activation>
+      <properties>
+        <javafx.platform>linux</javafx.platform>
+        <jpackage.type>app-image</jpackage.type>
+        <jpackage.os.args>--icon src/main/packaging/linux/SphereTS.png</jpackage.os.args>
+      </properties>
+    </profile>
+
+    <!-- ===== installer: mvn -Pinstaller package =====
+         Windows -> target/installer/SphereTS-1.0.0.msi (needs WiX 3.x on the PATH)
+         macOS   -> target/installer/SphereTS-1.0.0.dmg
+         Use -Djpackage.type=exe|pkg|app-image to change the package type. -->
+    <profile>
+      <id>installer</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>copy-modules</id>
+                <phase>package</phase>
+                <goals><goal>copy-dependencies</goal></goals>
+                <configuration>
+                  <includeScope>runtime</includeScope>
+                  <includeGroupIds>org.openjfx</includeGroupIds>
+                  <classifier>${javafx.platform}</classifier>
+                  <outputDirectory>${project.build.directory}/modules</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>prepare-jpackage</id>
+                <phase>package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                          todir="${project.build.directory}/modules"/>
+                    <delete dir="${project.build.directory}/installer"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.2.0</version>
+            <executions>
+              <execution>
+                <id>jpackage</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>${jpackage.executable}</executable>
+                  <workingDirectory>${project.basedir}</workingDirectory>
+                  <commandlineArgs>--type ${jpackage.type} --name ${app.name} --app-version ${app.version} --vendor "${app.vendor}" --description "Target strength of small spheres for odontocete clicks" --module-path target/modules --module ${app.module}/${app.mainClass} --java-options "-Xmx2g" --dest target/installer ${jpackage.os.args}</commandlineArgs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
